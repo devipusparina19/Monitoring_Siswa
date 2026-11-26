@@ -12,6 +12,7 @@ class Video extends Model
         'teacher_id',
         'title',
         'youtube_url',
+        'youtube_video_id',
         'material',
         'description',
     ];
@@ -26,40 +27,51 @@ class Video extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
+    // ID video yang aman dipakai di iframe
     public function getYoutubeIdAttribute(): ?string
     {
-        $url = $this->youtube_url;
+        return $this->youtube_video_id ?: self::extractYoutubeId($this->youtube_url);
+    }
 
+    // Mengambil ID 11 karakter dari URL YouTube yang sah; selain itu mengembalikan null
+    public static function extractYoutubeId(?string $url): ?string
+    {
         if (!$url) {
             return null;
         }
 
-        $parts = parse_url($url);
+        $parts = parse_url(trim($url));
 
-        if (!$parts) {
+        if (!$parts || empty($parts['host'])) {
             return null;
         }
 
-        $host = $parts['host'] ?? '';
-
-        if (str_contains($host, 'youtu.be')) {
-            return trim($parts['path'] ?? '/', '/');
+        if (!in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)) {
+            return null;
         }
 
-        if (str_contains($host, 'youtube.com')) {
-            if (isset($parts['query'])) {
+        $host = strtolower(preg_replace('/^www\./', '', $parts['host']));
+        $path = $parts['path'] ?? '';
+        $id = null;
+
+        if ($host === 'youtu.be') {
+            $id = trim($path, '/');
+        } elseif (in_array($host, [
+            'youtube.com',
+            'm.youtube.com',
+            'music.youtube.com',
+            'youtube-nocookie.com',
+        ], true)) {
+            if (!empty($parts['query'])) {
                 parse_str($parts['query'], $query);
-
-                if (!empty($query['v'])) {
-                    return $query['v'];
-                }
+                $id = is_string($query['v'] ?? null) ? $query['v'] : null;
             }
 
-            if (str_contains($parts['path'] ?? '', '/embed/')) {
-                return last(explode('/embed/', $parts['path']));
+            if (!$id && preg_match('#^/(embed|shorts|live|v)/([^/?]+)#', $path, $m)) {
+                $id = $m[2];
             }
         }
 
-        return null;
+        return ($id && preg_match('/^[A-Za-z0-9_-]{11}$/', $id)) ? $id : null;
     }
 }

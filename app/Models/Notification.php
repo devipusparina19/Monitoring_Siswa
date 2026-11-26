@@ -11,8 +11,10 @@ class Notification extends Model
         'user_id',
         'student_id',
         'type',
+        'target',
         'message',
         'status',
+        'response',
         'sent_at',
     ];
 

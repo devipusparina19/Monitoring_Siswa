@@ -3,17 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use Illuminate\Support\Facades\Gate;
 
 class ParentController extends Controller
 {
     public function show(Student $student)
     {
-        abort_unless(
-            $student->parent_id === auth()->id(),
-            403
-        );
+        // Hanya anak yang terhubung dengan akun orang tua ini
+        Gate::authorize('view', $student);
 
         $student->load([
+            'classroom',
             'developments' => function ($query) {
                 $query->with('teacher')
                     ->latest('monitoring_date');
