@@ -6,17 +6,18 @@
 @section('no_welcome', '1')
 
 @push('styles')
-    @include('partials.data-table-styles')
+    @include('partials.ui-extras')
 @endpush
 
 
 @section('content')
 
+{{-- PEMBUKA --}}
 <div class="page-head">
 
     <div>
         <h2><span id="greeting">Selamat datang,</span> {{ auth()->user()->name }}</h2>
-        <p>Kelola monitoring perkembangan siswa sesuai tanggung jawab mengajar Anda.</p>
+        <p>Pilih siswa, lalu catat perkembangan belajar atau rekomendasikan video pembelajaran.</p>
     </div>
 
     <div class="page-actions">
@@ -26,9 +27,9 @@
             Pilih Siswa
         </a>
 
-        <a href="{{ route('videos.index') }}" class="btn btn-secondary">
-            <i class="bi bi-play-circle-fill" aria-hidden="true"></i>
-            Video Saya
+        <a href="{{ route('developments.index') }}" class="btn btn-secondary">
+            <i class="bi bi-clipboard2-check-fill" aria-hidden="true"></i>
+            Riwayat Monitoring
         </a>
 
     </div>
@@ -36,8 +37,45 @@
 </div>
 
 
+{{-- PENUGASAN SAYA --}}
+<section class="card mb-4" aria-labelledby="assignTitle">
+    <div class="card-body">
+
+        <h3 class="panel-title" id="assignTitle">Penugasan Saya</h3>
+
+        @if($assignments->isEmpty())
+
+            <div class="info-box">
+                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+                <span>Anda belum mendapat penugasan kelas. Hubungi admin sekolah agar siswa muncul di sini.</span>
+            </div>
+
+        @else
+
+            <div class="chip-list">
+                @foreach($assignments as $assignment)
+                    @if($assignment->isHomeroom())
+                        <span class="chip is-primary">
+                            <i class="bi bi-person-badge-fill" aria-hidden="true"></i>
+                            Wali Kelas {{ $assignment->classroom?->name }}
+                        </span>
+                    @else
+                        <span class="chip">
+                            <i class="bi bi-journal-bookmark-fill" aria-hidden="true"></i>
+                            {{ $assignment->subject?->name }} · Kelas {{ $assignment->classroom?->name }}
+                        </span>
+                    @endif
+                @endforeach
+            </div>
+
+        @endif
+
+    </div>
+</section>
+
+
 {{-- RINGKASAN --}}
-<section class="mb-5" aria-label="Ringkasan">
+<section class="mb-4" aria-label="Ringkasan">
 
     <div class="row g-4">
 
@@ -47,7 +85,7 @@
                 <div>
                     <div class="stat-value" data-count="{{ $studentCount }}">{{ $studentCount }}</div>
                     <div class="stat-label">Siswa dalam Tanggung Jawab</div>
-                    <small class="text-muted d-block mt-1">Siswa sesuai kelas atau mata pelajaran yang diampu</small>
+                    <small class="text-muted d-block mt-1">Sesuai kelas atau mata pelajaran yang diampu</small>
                 </div>
             </div>
         </div>
@@ -58,7 +96,7 @@
                 <div>
                     <div class="stat-value" data-count="{{ $developmentCount }}">{{ $developmentCount }}</div>
                     <div class="stat-label">Monitoring Saya</div>
-                    <small class="text-muted d-block mt-1">Data perkembangan yang telah dicatat</small>
+                    <small class="text-muted d-block mt-1">Catatan perkembangan yang telah dibuat</small>
                 </div>
             </div>
         </div>
@@ -68,36 +106,12 @@
                 <div class="stat-icon" aria-hidden="true"><i class="bi bi-play-circle-fill"></i></div>
                 <div>
                     <div class="stat-value" data-count="{{ $videoCount }}">{{ $videoCount }}</div>
-                    <div class="stat-label">Video Pembelajaran</div>
-                    <small class="text-muted d-block mt-1">Rekomendasi video pembelajaran yang dibuat</small>
+                    <div class="stat-label">Video Rekomendasi</div>
+                    <small class="text-muted d-block mt-1">Video pembelajaran yang diberikan</small>
                 </div>
             </div>
         </div>
 
-    </div>
-
-</section>
-
-
-{{-- PENUGASAN SAYA --}}
-<section class="card data-card mb-4" aria-labelledby="assignTitle">
-
-    <div class="data-card-top">
-        <strong id="assignTitle">Penugasan Saya</strong>
-    </div>
-
-    <div class="p-3">
-        @forelse($assignments as $assignment)
-            @if($assignment->isHomeroom())
-                <span class="badge text-bg-primary me-1 mb-1">Wali Kelas {{ $assignment->classroom?->name }}</span>
-            @else
-                <span class="badge text-bg-secondary me-1 mb-1">
-                    {{ $assignment->subject?->name }} — Kelas {{ $assignment->classroom?->name }}
-                </span>
-            @endif
-        @empty
-            <span class="text-muted">Anda belum mendapat penugasan. Hubungi admin sekolah.</span>
-        @endforelse
     </div>
 
 </section>
@@ -117,39 +131,63 @@
         @endif
     </div>
 
-    @if($students->count())
-
-        <div class="table-responsive">
-            <table class="table table-hover table-stack align-middle">
-                <thead>
-                    <tr>
-                        <th scope="col">NIS</th>
-                        <th scope="col">Nama</th>
-                        <th scope="col">Kelas</th>
-                        <th scope="col">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($students as $student)
-                        <tr>
-                            <td data-label="NIS">{{ $student->nis }}</td>
-                            <td data-label="Nama"><span class="person-name">{{ $student->name }}</span></td>
-                            <td data-label="Kelas">{{ $student->classroom?->name ?? '-' }}</td>
-                            <td data-label="Aksi">
-                                <a href="{{ route('teacher.students.show', $student) }}" class="btn btn-primary btn-sm">Detail</a>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-    @else
+    @if($students->isEmpty())
 
         <div class="empty-state">
             <div class="empty-icon" aria-hidden="true"><i class="bi bi-people"></i></div>
             <h3>Belum ada siswa</h3>
             <p>Siswa akan muncul setelah admin memberikan penugasan kelas kepada Anda.</p>
+        </div>
+
+    @else
+
+        <div class="table-responsive">
+            <table class="table table-hover table-stack align-middle">
+
+                <thead>
+                    <tr>
+                        <th scope="col">Siswa</th>
+                        <th scope="col">Kelas</th>
+                        <th scope="col">Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach($students as $student)
+                        <tr>
+
+                            <td class="cell-name" data-label="Siswa">
+                                <div class="person">
+                                    <div class="person-avatar" aria-hidden="true">{{ strtoupper(mb_substr($student->name, 0, 1)) }}</div>
+                                    <div class="min-w-0">
+                                        <div class="person-name">{{ $student->name }}</div>
+                                        <div class="cell-muted small">NIS {{ $student->nis }}</div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td data-label="Kelas">
+                                <span class="badge text-bg-primary">Kelas {{ $student->classroom?->name ?? '-' }}</span>
+                            </td>
+
+                            <td class="cell-actions" data-label="Aksi">
+                                <div class="actions">
+                                    <a href="{{ route('teacher.students.show', $student) }}" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-eye-fill" aria-hidden="true"></i>
+                                        Detail
+                                    </a>
+                                    <a href="{{ route('developments.create', ['student' => $student->id]) }}" class="btn btn-secondary btn-sm">
+                                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                        Monitoring
+                                    </a>
+                                </div>
+                            </td>
+
+                        </tr>
+                    @endforeach
+                </tbody>
+
+            </table>
         </div>
 
     @endif
@@ -161,7 +199,6 @@
 <section class="card data-card" aria-labelledby="monitoringTitle">
 
     <div class="data-card-top">
-
         <strong id="monitoringTitle">Monitoring Terbaru</strong>
 
         @if($developments->count())
@@ -170,14 +207,23 @@
                 <i class="bi bi-arrow-right" aria-hidden="true"></i>
             </a>
         @endif
-
     </div>
 
+    @if($developments->isEmpty())
 
-    @if($developments->count())
+        <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true"><i class="bi bi-clipboard-x"></i></div>
+            <h3>Belum ada data monitoring</h3>
+            <p>Pilih siswa, lalu catat perkembangan belajar pertamanya.</p>
+            <a href="{{ route('teacher.students.index') }}" class="btn btn-primary">
+                <i class="bi bi-people-fill" aria-hidden="true"></i>
+                Pilih Siswa
+            </a>
+        </div>
+
+    @else
 
         <div class="table-responsive">
-
             <table class="table table-hover table-stack align-middle">
 
                 <thead>
@@ -190,48 +236,17 @@
                 </thead>
 
                 <tbody>
-
                     @foreach($developments as $item)
-
                         <tr>
                             <td data-label="Tanggal">{{ $item->monitoring_date->format('d-m-Y') }}</td>
-
-                            <td data-label="Siswa">
-                                <span class="person-name">{{ $item->student?->name ?? '-' }}</span>
-                            </td>
-
-                            <td data-label="Mata Pelajaran">
-                                <span class="badge text-bg-primary">{{ $item->subject }}</span>
-                            </td>
-
-                            <td data-label="Perkembangan">
-                                <span class="cell-muted">{{ \Illuminate\Support\Str::limit($item->development, 80) }}</span>
-                            </td>
+                            <td data-label="Siswa"><span class="person-name">{{ $item->student?->name ?? '-' }}</span></td>
+                            <td data-label="Mata Pelajaran"><span class="badge text-bg-primary">{{ $item->subject }}</span></td>
+                            <td data-label="Perkembangan"><span class="cell-muted">{{ \Illuminate\Support\Str::limit($item->development, 80) }}</span></td>
                         </tr>
-
                     @endforeach
-
                 </tbody>
 
             </table>
-
-        </div>
-
-    @else
-
-        <div class="empty-state">
-
-            <div class="empty-icon" aria-hidden="true"><i class="bi bi-clipboard-x"></i></div>
-
-            <h3>Belum ada data monitoring</h3>
-
-            <p>Pilih siswa, lalu catat perkembangan belajar pertamanya.</p>
-
-            <a href="{{ route('teacher.students.index') }}" class="btn btn-primary">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i>
-                Pilih Siswa
-            </a>
-
         </div>
 
     @endif

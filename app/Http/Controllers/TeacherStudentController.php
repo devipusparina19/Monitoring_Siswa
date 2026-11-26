@@ -45,32 +45,52 @@ class TeacherStudentController extends Controller
         Gate::authorize('view', $student);
 
         $user = $request->user();
-        $student->load('classroom');
+
+        $student->load('classroom.homeroomAssignment.teacher');
 
         $subjects = $user->subjectsFor($student);
         $isHomeroom = in_array($student->classroom_id, $user->homeroomClassroomIds());
 
         // Wali kelas melihat semua catatan siswa; guru mapel hanya catatannya sendiri
-        $developments = Development::with('teacher')
-            ->where('student_id', $student->id)
-            ->when(!$isHomeroom, fn ($q) => $q->where('teacher_id', $user->id))
+        $devBase = Development::where('student_id', $student->id)
+            ->when(!$isHomeroom, fn ($q) => $q->where('teacher_id', $user->id));
+
+        $videoBase = Video::where('student_id', $student->id)
+            ->when(!$isHomeroom, fn ($q) => $q->where('teacher_id', $user->id));
+
+        $developmentCount = (clone $devBase)->count();
+        $videoCount = (clone $videoBase)->count();
+        $lastDate = (clone $devBase)->max('monitoring_date');
+
+        $developments = (clone $devBase)
+            ->with('teacher')
             ->latest('monitoring_date')
+            ->latest('id')
             ->limit(15)
             ->get();
 
-        $videos = Video::with('teacher')
-            ->where('student_id', $student->id)
-            ->when(!$isHomeroom, fn ($q) => $q->where('teacher_id', $user->id))
+        $videos = (clone $videoBase)
+            ->with('teacher')
             ->latest()
             ->limit(10)
             ->get();
+
+        $activity = Development::activityByMonth(
+            (clone $devBase)
+                ->where('monitoring_date', '>=', now()->subMonths(5)->startOfMonth()->toDateString())
+                ->get(['monitoring_date'])
+        );
 
         return view('teacher.students.show', compact(
             'student',
             'subjects',
             'isHomeroom',
             'developments',
-            'videos'
+            'videos',
+            'developmentCount',
+            'videoCount',
+            'lastDate',
+            'activity'
         ));
     }
 }

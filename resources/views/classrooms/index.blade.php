@@ -2,49 +2,118 @@
 
 @section('title', 'Data Kelas')
 
+@section('breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> / Data Kelas
+@endsection
+
+@push('styles')
+    @include('partials.ui-extras')
+@endpush
+
 @section('content')
 
-<div class="d-flex justify-content-between mb-3">
-    <h2>Data Kelas</h2>
-    <a href="{{ route('classrooms.create') }}" class="btn btn-primary">+ Tambah Kelas</a>
+<div class="page-head">
+
+    <p>Kelola daftar kelas. Wali kelas ditetapkan di menu Penugasan Guru.</p>
+
+    <div class="page-actions">
+        <a href="{{ route('classrooms.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            Tambah Kelas
+        </a>
+    </div>
+
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
+<div class="card data-card">
+
+    <div class="data-card-top">
+        <strong>Daftar Kelas</strong>
+        <span class="badge text-bg-primary">{{ $classrooms->total() }} kelas</span>
+    </div>
+
+    @if($classrooms->isEmpty())
+
+        <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true"><i class="bi bi-building"></i></div>
+            <h3>Belum ada kelas</h3>
+            <p>Tambahkan kelas terlebih dahulu sebelum memasukkan siswa dan penugasan guru.</p>
+            <a href="{{ route('classrooms.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                Tambah Kelas
+            </a>
+        </div>
+
+    @else
+
         <div class="table-responsive">
-            <table class="table table-bordered align-middle">
+            <table class="table table-hover table-stack align-middle">
+
                 <thead>
                     <tr>
-                        <th>Kelas</th>
-                        <th>Jumlah Siswa</th>
-                        <th>Wali Kelas</th>
-                        <th style="width:170px">Aksi</th>
+                        <th scope="col">Kelas</th>
+                        <th scope="col">Jumlah Siswa</th>
+                        <th scope="col">Wali Kelas</th>
+                        <th scope="col">Aksi</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    @forelse($classrooms as $classroom)
+                    @foreach($classrooms as $classroom)
                         <tr>
-                            <td>{{ $classroom->name }}</td>
-                            <td>{{ $classroom->students_count }}</td>
-                            <td>{{ $classroom->homeroomAssignment?->teacher?->name ?? '-' }}</td>
-                            <td>
-                                <a href="{{ route('classrooms.edit', $classroom) }}" class="btn btn-warning btn-sm">Edit</a>
-                                <form action="{{ route('classrooms.destroy', $classroom) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm" onclick="return confirm('Hapus kelas ini?')">Hapus</button>
-                                </form>
+
+                            <td class="cell-name" data-label="Kelas">
+                                <div class="person">
+                                    <div class="person-avatar" aria-hidden="true"><i class="bi bi-building"></i></div>
+                                    <div class="person-name">Kelas {{ $classroom->name }}</div>
+                                </div>
                             </td>
+
+                            <td data-label="Jumlah Siswa">
+                                <span class="badge text-bg-primary">{{ $classroom->students_count }} siswa</span>
+                            </td>
+
+                            <td data-label="Wali Kelas">
+                                @if($classroom->homeroomAssignment?->teacher)
+                                    <span class="cell-muted">{{ $classroom->homeroomAssignment->teacher->name }}</span>
+                                @else
+                                    <span class="chip is-gold">Belum ditentukan</span>
+                                @endif
+                            </td>
+
+                            <td class="cell-actions" data-label="Aksi">
+                                <div class="actions">
+
+                                    <a href="{{ route('classrooms.edit', $classroom) }}" class="btn btn-secondary btn-sm" aria-label="Edit kelas {{ $classroom->name }}">
+                                        <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                        Edit
+                                    </a>
+
+                                    <form action="{{ route('classrooms.destroy', $classroom) }}" method="POST" data-confirm-delete data-name="Kelas {{ $classroom->name }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Hapus kelas {{ $classroom->name }}">
+                                            <i class="bi bi-trash3" aria-hidden="true"></i>
+                                            Hapus
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </td>
+
                         </tr>
-                    @empty
-                        <tr><td colspan="4" class="text-center text-muted">Belum ada kelas.</td></tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
+
             </table>
         </div>
 
-        {{ $classrooms->links() }}
-    </div>
+        <div class="data-card-bottom">{{ $classrooms->links() }}</div>
+
+    @endif
+
 </div>
+
+@include('partials.confirm-delete', ['noun' => 'kelas'])
 
 @endsection

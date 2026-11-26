@@ -59,4 +59,46 @@ class Development extends Model
                 );
         });
     }
+
+    /**
+     * Jumlah catatan monitoring per bulan (data asli) untuk grafik batang kecil.
+     *
+     * @return array<int, array{label:string, count:int, percent:int}>
+     */
+    public static function activityByMonth(iterable $items, int $months = 6): array
+    {
+        $counts = [];
+
+        foreach ($items as $item) {
+            if (!$item->monitoring_date) {
+                continue;
+            }
+
+            $key = $item->monitoring_date->format('Y-m');
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+
+        $rows = [];
+        $max = 0;
+
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $month = now()->startOfMonth()->subMonths($i);
+            $count = $counts[$month->format('Y-m')] ?? 0;
+            $max = max($max, $count);
+
+            $rows[] = [
+                'label' => $month->copy()->locale('id')->translatedFormat('M'),
+                'count' => $count,
+                'percent' => 0,
+            ];
+        }
+
+        foreach ($rows as $index => $row) {
+            $rows[$index]['percent'] = ($max > 0 && $row['count'] > 0)
+                ? (int) max(8, round($row['count'] / $max * 100))
+                : 0;
+        }
+
+        return $rows;
+    }
 }
